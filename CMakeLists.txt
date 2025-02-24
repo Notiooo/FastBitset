@@ -13,3 +13,4 @@ target_include_directories(FastBitset INTERFACE
 )
 
 add_subdirectory(tests)
+add_subdirectory(benchmarks)
