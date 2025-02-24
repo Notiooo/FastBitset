@@ -11,3 +11,5 @@ target_include_directories(FastBitset INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/include>
     $<INSTALL_INTERFACE:include>
 )
+
+add_subdirectory(tests)
