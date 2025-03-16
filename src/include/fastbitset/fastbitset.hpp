@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <concepts>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -17,7 +18,7 @@ public:
     }
 };
 
-template<std::size_t CONTAINER_SIZE, typename CHUNK_TYPE = std::uint64_t>
+template<std::size_t CONTAINER_SIZE, std::unsigned_integral CHUNK_TYPE = std::uint64_t>
 class FastBitset
 {
     static_assert(CONTAINER_SIZE != 0, "Container can't be of size 0.");
@@ -30,7 +31,7 @@ class FastBitset
 public:
     constexpr FastBitset() noexcept = default;
 
-    template<typename T, typename = std::enable_if_t<std::is_unsigned_v<T>>>
+    template<std::unsigned_integral T>
     explicit FastBitset(T initialValue)
     {
         if (not fitsInContainer(initialValue))
@@ -41,7 +42,7 @@ public:
         storeValue(initialValue);
     }
 
-    [[nodiscard]] constexpr int size() const
+    [[nodiscard]] static constexpr std::size_t size() noexcept
     {
         return CONTAINER_SIZE;
     }
@@ -64,13 +65,13 @@ public:
 
 
 private:
-    template<typename T>
+    template<std::unsigned_integral T>
     static constexpr bool canContainerStoreWholeTypeSize()
     {
         return CONTAINER_SIZE >= std::numeric_limits<T>::digits;
     }
 
-    template<typename T, typename = std::enable_if_t<std::is_unsigned_v<T>>>
+    template<std::unsigned_integral T>
     constexpr void storeValue(T value)
     {
         for (std::size_t i = 0; i < numberOfChunks and value != 0; ++i)
@@ -80,7 +81,7 @@ private:
         }
     }
 
-    constexpr void truncateExcessBits()
+    constexpr void truncateExcessBits() noexcept
     {
         constexpr auto remainderBits = CONTAINER_SIZE % bitsPerChunk;
 
@@ -91,7 +92,7 @@ private:
         }
     }
 
-    template<typename T, typename = std::enable_if_t<std::is_unsigned_v<T>>>
+    template<std::unsigned_integral T>
     static constexpr bool fitsInContainer(T value) noexcept
     {
         if (canContainerStoreWholeTypeSize<T>())
