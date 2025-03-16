@@ -1,0 +1,53 @@
+name: Coverage
+on: [ push, pull_request ]
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ make lcov
+
+      - name: Configure (Coverage)
+        run: |
+          mkdir -p build-coverage
+          cmake -S ${{github.workspace}} -B ${{github.workspace}}/build-coverage -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="--coverage"
+
+      - name: Build (Coverage)
+        run: |
+          cd build-coverage
+          cmake --build ${{github.workspace}}/build-coverage --config Debug --target FastBitset_test
+
+      - name: Run tests
+        run: |
+          ctest --test-dir ${{github.workspace}}/build-coverage/tests --output-on-failure
+
+      - name: Collect coverage
+        run: |
+          cd build-coverage
+          lcov --ignore-errors mismatch --directory . --capture --output-file coverage.info
+          lcov --extract coverage.info "*/FastBitset/src/*" --output-file coverage.info
+          lcov --list coverage.info
+
+      - name: Generate HTML Report
+        run: |
+          cd build-coverage
+          mkdir -p coverage_html
+          genhtml coverage.info --output-directory coverage_html
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: build-coverage/coverage.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload HTML Coverage Report as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: build-coverage/coverage_html
+          retention-days: 7

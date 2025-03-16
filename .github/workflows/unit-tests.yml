@@ -1,0 +1,26 @@
+name: Unit Tests
+on: [ push, pull_request ]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ make
+
+      - name: Configure (Debug mode)
+        run: |
+          mkdir -p build-test
+          cmake -S ${{github.workspace}} -B ${{github.workspace}}/build-test -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build (Debug)
+        run: |
+          cmake --build ${{github.workspace}}/build-test --config Debug --target FastBitset_test
+
+      - name: Run Tests
+        run: |
+          ctest --test-dir ${{github.workspace}}/build-test/tests --output-on-failure
