@@ -22,11 +22,10 @@ TEST(FastBitset08_U16, ConstructorShouldAllowToInitializeInRangeValue)
     EXPECT_EQ(bitset.chunk(0), 0b0000'0000'1010'1010);
 }
 
-TEST(FastBitset08_U16, ConstructorShouldTruncateOutOfRangeValues)
+TEST(FastBitset08_U16, ConstructorShouldThrowWhenValueBeyondCapacity)
 {
     const auto biggerValueThanContainer = std::uint16_t{0b1111'1111'1111'0000};
-    FastBitset08_U16 bitset(biggerValueThanContainer);
-    EXPECT_EQ(bitset.chunk(0), 0b0000'0000'1111'0000);
+    EXPECT_THROW(FastBitset08_U16 bitset(biggerValueThanContainer), fastbitset::BitsetOverflow);
 }
 
 TEST(FastBitset08_U16, ClearShouldSetAllBitsToZero)

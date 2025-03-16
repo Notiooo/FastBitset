@@ -32,12 +32,11 @@ TEST(FastBitset16_U08, ConstructorShouldAllowToSetValueAcrossTwoChunks)
     EXPECT_EQ(bitset.chunk(1), 0b1110'0001);
 }
 
-TEST(FastBitset16_U08, ConstructorShouldTruncateValuesBeyondTwoChunks)
+TEST(FastBitset16_U08, ConstructorShouldThrowWhenValueBeyondCapacity)
 {
     const auto beyondValue = std::uint32_t{0b1111'1111'1111'1111'1110'0001'1010'1010};
-    FastBitset16_U08 bitset(beyondValue);
-    EXPECT_EQ(bitset.chunk(0), 0b1010'1010);
-    EXPECT_EQ(bitset.chunk(1), 0b1110'0001);
+
+    EXPECT_THROW(FastBitset16_U08 bitset(beyondValue), fastbitset::BitsetOverflow);
 }
 
 TEST(FastBitset16_U08, ClearShouldSetAllBitsToZero)

@@ -2,15 +2,26 @@
 #include <array>
 #include <cstdint>
 #include <limits>
+#include <stdexcept>
 #include <type_traits>
 
 namespace fastbitset
 {
 
+class BitsetOverflow : public std::runtime_error
+{
+public:
+    explicit BitsetOverflow(const char* msg)
+        : std::runtime_error(msg)
+    {
+    }
+};
+
 template<std::size_t CONTAINER_SIZE, typename CHUNK_TYPE = std::uint64_t>
 class FastBitset
 {
-    static_assert(std::is_integral_v<CHUNK_TYPE>, "CHUNK_TYPE must be an integral type");
+    static_assert(CONTAINER_SIZE != 0, "Container can't be of size 0.");
+    static_assert(std::is_unsigned_v<CHUNK_TYPE>, "CHUNK_TYPE must be an unsigned integer");
     static_assert(std::is_unsigned_v<CHUNK_TYPE>, "CHUNK_TYPE must be an unsigned integer");
     static constexpr auto bitsPerChunk = std::numeric_limits<CHUNK_TYPE>::digits;
     static constexpr auto numberOfChunks = (CONTAINER_SIZE + bitsPerChunk - 1) / bitsPerChunk;
@@ -26,15 +37,13 @@ public:
     FastBitset(T initialValue)
     {
         clear();
-        if constexpr (canTypeStoreMoreBitsThanContainer<T>())
+
+        if (not fitsInContainer(initialValue))
         {
-            auto truncatedValue = truncateToContainerSize(initialValue);
-            storeValue(truncatedValue);
+            throw BitsetOverflow("FastBitset: value out of range. Capacity of container can't "
+                                 "store whole provided value to the container.");
         }
-        else
-        {
-            storeValue(initialValue);
-        }
+        storeValue(initialValue);
     }
 
     [[nodiscard]] constexpr int size() const
@@ -45,7 +54,7 @@ public:
     void set()
     {
         mData.fill(std::numeric_limits<CHUNK_TYPE>::max());
-        truncateContainerToMaxSize();
+        truncateExcessBits();
     }
 
     void clear()
@@ -61,9 +70,9 @@ public:
 
 private:
     template<typename T>
-    static constexpr bool canTypeStoreMoreBitsThanContainer()
+    static constexpr bool canContainerStoreWholeTypeSize()
     {
-        return std::numeric_limits<T>::digits > CONTAINER_SIZE;
+        return CONTAINER_SIZE >= std::numeric_limits<T>::digits;
     }
 
     template<typename T, typename = std::enable_if_t<std::is_unsigned_v<T>>>
@@ -76,14 +85,7 @@ private:
         }
     }
 
-    template<typename T, typename = std::enable_if_t<std::is_unsigned_v<T>>>
-    constexpr T truncateToContainerSize(T valueToTruncate) const
-    {
-        valueToTruncate &= (T{1} << CONTAINER_SIZE) - 1;
-        return valueToTruncate;
-    }
-
-    constexpr void truncateContainerToMaxSize()
+    constexpr void truncateExcessBits()
     {
         constexpr auto remainderBits = CONTAINER_SIZE % bitsPerChunk;
 
@@ -92,6 +94,16 @@ private:
             constexpr auto mask = (CHUNK_TYPE{1} << remainderBits) - 1;
             mData.back() &= mask;
         }
+    }
+
+    template<typename T, typename = std::enable_if_t<std::is_unsigned_v<T>>>
+    static constexpr bool fitsInContainer(T value) noexcept
+    {
+        if (canContainerStoreWholeTypeSize<T>())
+        {
+            return true;
+        }
+        return value < (T{1} << CONTAINER_SIZE);
     }
 
 private:
