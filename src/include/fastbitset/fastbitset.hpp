@@ -28,16 +28,11 @@ class FastBitset
 
 
 public:
-    FastBitset()
-    {
-        clear();
-    }
+    constexpr FastBitset() noexcept = default;
 
     template<typename T, typename = std::enable_if_t<std::is_unsigned_v<T>>>
-    FastBitset(T initialValue)
+    explicit FastBitset(T initialValue)
     {
-        clear();
-
         if (not fitsInContainer(initialValue))
         {
             throw BitsetOverflow("FastBitset: value out of range. Capacity of container can't "
@@ -51,18 +46,18 @@ public:
         return CONTAINER_SIZE;
     }
 
-    void set()
+    void set() noexcept
     {
         mData.fill(std::numeric_limits<CHUNK_TYPE>::max());
         truncateExcessBits();
     }
 
-    void clear()
+    void clear() noexcept
     {
-        mData.fill(0);
+        mData.fill(CHUNK_TYPE{0});
     }
 
-    CHUNK_TYPE chunk(std::size_t index)
+    [[nodiscard]] CHUNK_TYPE chunk(std::size_t index) const
     {
         return mData.at(index);
     }
@@ -107,7 +102,7 @@ private:
     }
 
 private:
-    std::array<CHUNK_TYPE, numberOfChunks> mData;
+    std::array<CHUNK_TYPE, numberOfChunks> mData{};
 };
 
 }// namespace fastbitset
